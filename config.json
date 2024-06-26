@@ -1,0 +1,22 @@
+{
+  "general": {
+    "name" : "",
+    "qgisMinimumVersion": 3.0,
+    "qgisMaximumVersion": 3.99,
+    "icon": "icon.png",
+    "experimental": false,
+    "deprecated": false,
+    "homepage": "",
+    "tracker": "",
+    "repository": "",
+    "tags": [],
+    "category": ["plugins"],
+    "hasProcessingProvider": "no",
+    "about": "",
+    "author": "Kartoza",
+    "email": "info@kartoza.com",
+    "description": "",
+    "version": "0.0.1",
+    "changelog": ""
+  }
+}
