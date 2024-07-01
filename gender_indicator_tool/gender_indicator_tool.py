@@ -2395,6 +2395,7 @@ class GenderIndicatorTool:
         # Temp files
         tempCalc = f"{tempDir}/tempCalc.tif"
         tempResample = f"{tempDir}/tempResample.tif"
+        tempResampleMask = f"{tempDir}/tempResampleMask.tif"
         countryUTMLayerBuf = f"{tempDir}/countryUTMLayerBuf.shp"
 
         styleTemplate = f"{current_script_path}/Style/{Dimension}.qml"
@@ -2450,11 +2451,23 @@ class GenderIndicatorTool:
                 "OUTPUT": tempResample,
             },
         )
+        
+        processing.run(
+            "gdal:cliprasterbymasklayer",
+            {
+                "INPUT":tempResample,
+                "MASK":countryUTMLayerBuf,
+                "SOURCE_CRS":None,
+                "TARGET_CRS": QgsCoordinateReferenceSystem(UTM_crs),
+                "TARGET_EXTENT": f"{country_extent[0]},{country_extent[2]},{country_extent[1]},{country_extent[3]} [{UTM_crs}]",
+                "OUTPUT":tempResampleMask,
+            },
+        )
 
         processing.run(
             "gdal:rastercalculator",
             {
-                "INPUT_A": tempResample,
+                "INPUT_A": tempResampleMask,
                 "BAND_A": 1,
                 "INPUT_B": None,
                 "BAND_B": None,
@@ -2542,6 +2555,7 @@ class GenderIndicatorTool:
         # Temp files
         tempCalc = f"{tempDir}/tempCalc.tif"
         tempResample = f"{tempDir}/tempResample.tif"
+        tempResampleMask = f"{tempDir}/tempResampleMask.tif"
         countryUTMLayerBuf = f"{tempDir}/countryUTMLayerBuf.shp"
 
         styleTemplate = f"{current_script_path}/Style/{Dimension}.qml"
@@ -2597,11 +2611,23 @@ class GenderIndicatorTool:
                 "OUTPUT": tempResample,
             },
         )
+        
+        processing.run(
+            "gdal:cliprasterbymasklayer",
+            {
+                "INPUT":tempResample,
+                "MASK":countryUTMLayerBuf,
+                "SOURCE_CRS":None,
+                "TARGET_CRS": QgsCoordinateReferenceSystem(UTM_crs),
+                "TARGET_EXTENT": f"{country_extent[0]},{country_extent[2]},{country_extent[1]},{country_extent[3]} [{UTM_crs}]",
+                "OUTPUT":tempResampleMask,
+            },
+        )
 
         processing.run(
             "gdal:rastercalculator",
             {
-                "INPUT_A": tempResample,
+                "INPUT_A": tempResampleMask,
                 "BAND_A": 1,
                 "INPUT_B": None,
                 "BAND_B": None,
@@ -2877,9 +2903,11 @@ class GenderIndicatorTool:
 
         # Temp Files
         tempRas = f"{tempDir}/RasReproj.tif"
+        tempRasMask = f"{tempDir}/RasReprojMask.tif"
         tempVect = f"{tempDir}/tempVect.shp"
         Dissolve = f"{tempDir}/Dissolve.shp"
         DisReclass = f"{tempDir}/DisReclass.shp"
+        countryUTMLayerBuf = f"{tempDir}/countryUTMLayerBuf.shp"
 
         styleTemplate = f"{current_script_path}/Style/{Dimension}.qml"
         styleFileDestination = f"{workingDir}{Dimension}/"
@@ -2908,11 +2936,12 @@ class GenderIndicatorTool:
                 "MITER_LIMIT": 2,
                 "DISSOLVE": True,
                 "SEPARATE_DISJOINT": False,
-                "OUTPUT": "memory:",
+                "OUTPUT": countryUTMLayerBuf,
             },
         )
 
-        countryUTMLayerBuf = buffer["OUTPUT"]
+        CountryBuf_df = gpd.read_file(countryUTMLayerBuf)
+        country_extent = CountryBuf_df.total_bounds
 
         Reproject = processing.run(
             "gdal:warpreproject",
@@ -2932,11 +2961,22 @@ class GenderIndicatorTool:
                 "OUTPUT": tempRas,
             },
         )
+        
+        processing.run(
+            "gdal:cliprasterbymasklayer",
+            {
+                "INPUT":tempRas,
+                "MASK":countryUTMLayerBuf,
+                "TARGET_CRS": QgsCoordinateReferenceSystem(UTM_crs),
+                "TARGET_EXTENT": f"{country_extent[0]},{country_extent[2]},{country_extent[1]},{country_extent[3]} [{UTM_crs}]",
+                "OUTPUT":tempRasMask,
+            },
+        )
 
         vector = processing.run(
             "gdal:polygonize",
             {
-                "INPUT": tempRas,
+                "INPUT": tempRasMask,
                 "BAND": 1,
                 "FIELD": "DN",
                 "EIGHT_CONNECTEDNESS": False,
