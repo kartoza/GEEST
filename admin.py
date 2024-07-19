@@ -22,7 +22,7 @@ import toml
 import typer
 
 LOCAL_ROOT_DIR = Path(__file__).parent.resolve()
-SRC_NAME = "qgis_plugin_template"
+SRC_NAME = "qgis_gender_indicator_tool"
 PACKAGE_NAME = SRC_NAME.replace("_", "")
 TEST_FILES = ["test", "test_suite.py", "docker-compose.yml", "scripts"]
 app = typer.Typer()
@@ -454,7 +454,7 @@ def _get_existing_releases(
     :returns: List of github releases
     :rtype: List[GithubRelease]
     """
-    base_url = "https://api.github.com/repos/" "samweli/qgis-plugin-template/releases"
+    base_url = "https://api.github.com/repos/" "kartoza/GEEST/releases"
     response = httpx.get(base_url)
     result = []
     if response.status_code == 200:

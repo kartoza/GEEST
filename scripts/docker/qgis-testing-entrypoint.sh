@@ -4,7 +4,7 @@
 
 set -e
 
-source /tests_directory/scripts/docker/qgis-plugin-template-test-pre-scripts.sh
+source /tests_directory/scripts/docker/qgis-gender-indicator-tool-test-pre-scripts.sh
 
 # Run supervisor
 # This is the default command of qgis/qgis but we will run it in background

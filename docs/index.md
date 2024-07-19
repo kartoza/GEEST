@@ -1,3 +1,0 @@
-# plugin_name
-
-## Introduction
