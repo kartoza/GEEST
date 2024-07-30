@@ -31,18 +31,28 @@ from qgis.core import *
 # Auxiliary libraries
 import os
 import sys
-import geopandas as gpd
-import pandas as pd
-from rasterio.crs import CRS
-import rasterio
-import numpy as np
+
 import math
 import shutil
 import time
 import logging
-import ast
-from rasterio.mask import mask
-from rasterio.features import geometry_mask
+
+
+try:
+
+    import geopandas as gpd
+    import pandas as pd
+    from rasterio.crs import CRS
+    import rasterio
+    import numpy as np
+    import ast
+    from rasterio.mask import mask
+    from rasterio.features import geometry_mask
+except ImportError:
+   plugin_dir = os.path.dirname(__file__)
+   post_install_script = os.path.join(plugin_dir, 'post_install.py')
+   QgsMessageLog.logMessage("Installing requirements...", 'GEEST', level=Qgis.Info)
+   subprocess.check_call([sys.executable, post_install_script])
 
 # Prepare processing framework
 # sys.path.append(r'C:\Program Files\QGIS 3.32.0\apps\qgis\python\plugins') # Folder where Processing is located

@@ -20,5 +20,8 @@
     "changelog": "",
     "server": false,
     "plugin_dependencies": "ORS Tools==1.8.3"
+  },
+  "python": {
+    "post_install": "jobs/post_install.py"
   }
 }

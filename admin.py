@@ -151,7 +151,7 @@ def generate_zip(
     :type context: Path
     """
     build_dir = build(context)
-    metadata = _get_metadata()
+    metadata = _get_metadata()['general']
     plugin_version = metadata["version"] if version is None else version
     output_directory.mkdir(parents=True, exist_ok=True)
     zip_path = output_directory / f"{SRC_NAME}.{plugin_version}.zip"
@@ -198,6 +198,7 @@ def build(
     if icon_path is None:
         _log("Could not copy icon", context=context)
     compile_resources(context, output_directory)
+    add_requirements_file(context, output_directory)
     generate_metadata(context, output_directory)
     return output_directory
 
@@ -216,7 +217,7 @@ def copy_icon(
     :rtype: Path
     """
 
-    metadata = _get_metadata()
+    metadata = _get_metadata()['general']
     icon_path = LOCAL_ROOT_DIR / "resources" / metadata["icon"]
     if icon_path.is_file():
         target_path = output_directory / icon_path.name
@@ -276,6 +277,15 @@ def compile_resources(
     _log(f"compile_resources target_path: {target_path}", context=context)
     subprocess.run(shlex.split(f"pyrcc5 -o {target_path} {resources_path}"))
 
+@app.command()
+def add_requirements_file(
+        context: typer.Context,
+        output_directory: typing.Optional[Path] = LOCAL_ROOT_DIR / "build/temp",
+):
+    resources_path = LOCAL_ROOT_DIR / "requirements.txt"
+    target_path = output_directory / "requirements.txt"
+
+    shutil.copy(str(resources_path.resolve()), str(target_path))
 
 @app.command()
 def generate_metadata(
@@ -299,7 +309,8 @@ def generate_metadata(
     # do not modify case of parameters, as per
     # https://docs.python.org/3/library/configparser.html#customizing-parser-behaviour
     config.optionxform = lambda option: option
-    config["general"] = metadata
+    config["general"] = metadata['general']
+    config["python"] = metadata['python']
     with target_path.open(mode="w") as fh:
         config.write(fh)
 
@@ -316,7 +327,7 @@ def generate_plugin_repo_xml(
     """
     repo_base_dir = LOCAL_ROOT_DIR / "docs" / "repository"
     repo_base_dir.mkdir(parents=True, exist_ok=True)
-    metadata = _get_metadata()
+    metadata = _get_metadata()['general']
     fragment_template = """
             <pyqgis_plugin name="{name}" version="{version}">
                 <description><![CDATA[{description}]]></description>
@@ -382,14 +393,22 @@ def _get_metadata() -> typing.Dict:
     with config_path.open("r") as fh:
         conf = json.load(fh)
     general_plugin_config = conf["general"]
-    metadata = general_plugin_config
+    python_plugin_config = conf["python"]
 
-    metadata.update(
+    general_metadata = general_plugin_config
+
+    general_metadata.update(
         {
             "tags": ", ".join(general_plugin_config.get("tags", [])),
             "changelog": _changelog(),
         }
     )
+
+    metadata = {
+        'general': general_metadata,
+        'python': python_plugin_config
+    }
+
     return metadata
 
 

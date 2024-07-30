@@ -24,10 +24,10 @@
 """
 import os, sys
 
-LIB_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), 'lib'))
-if LIB_DIR not in sys.path:
-    sys.path.append(LIB_DIR)
+# LIB_DIR = os.path.abspath(
+#     os.path.join(os.path.dirname(__file__), 'lib'))
+# if LIB_DIR not in sys.path:
+#     sys.path.append(LIB_DIR)
 
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
