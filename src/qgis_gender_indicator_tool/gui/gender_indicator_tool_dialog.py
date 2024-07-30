@@ -23,10 +23,14 @@
 """
 
 import os
-import geopandas as gpd
-import rasterio
-from rasterio.features import rasterize
-from rasterio.transform import from_origin
+from qgis.core import QgsMessageLog, Qgis
+try:
+    import geopandas as gpd
+    import rasterio
+    from rasterio.features import rasterize
+    from rasterio.transform import from_origin
+except Exception:
+    QgsMessageLog.logMessage("Problem importing packages in a dialog...", 'GEEST', level=Qgis.Info)
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets

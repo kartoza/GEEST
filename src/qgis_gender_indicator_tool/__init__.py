@@ -24,10 +24,54 @@
 """
 import os, sys
 
+from pathlib import Path
+
 # LIB_DIR = os.path.abspath(
 #     os.path.join(os.path.dirname(__file__), 'lib'))
 # if LIB_DIR not in sys.path:
 #     sys.path.append(LIB_DIR)
+
+def install():
+    try:
+        import subprocess
+        import sys
+        import shutil
+        from qgis.core import QgsMessageLog, Qgis
+
+        def check_pip_installed():
+            if shutil.which('pip') is None:
+                QgsMessageLog.logMessage(
+                    "pip is not installed. Please install pip before installing the GEEST plugin.\n"
+                    "You can install pip by following the instructions at https://pip.pypa.io/en/stable/installation/",
+                    'GEEST',
+                    level=Qgis.Critical
+                )
+                sys.exit(1)
+
+        def install_requirements():
+            requirements_path = Path(__file__).parent / 'requirements.txt'
+
+            if not requirements_path.exists():
+                QgsMessageLog.logMessage(f"requirements.txt not found at {requirements_path}", 'GEEST',
+                                         level=Qgis.Critical)
+                sys.exit(1)
+
+            try:
+                QgsMessageLog.logMessage("Installing requirements...", 'GEEST', level=Qgis.Info)
+                subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', f"{requirements_path}"])
+                QgsMessageLog.logMessage("Requirements installed successfully.", 'GEEST', level=Qgis.Success)
+            except subprocess.CalledProcessError as e:
+                QgsMessageLog.logMessage(f"Failed to install requirements: {e}", 'GEEST', level=Qgis.Critical)
+                sys.exit(1)
+
+        check_pip_installed()
+        install_requirements()
+
+        QgsMessageLog.logMessage("Post-install script executed successfully.", 'GEEST', level=Qgis.Success)
+    except Exception as e:
+        QgsMessageLog.logMessage(f"Post-install script failed: {e}", 'GEEST', level=Qgis.Critical)
+
+install()
 
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name

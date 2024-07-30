@@ -32,6 +32,8 @@ from qgis.core import *
 import os
 import sys
 
+import subprocess
+
 import math
 import shutil
 import time
@@ -48,11 +50,8 @@ try:
     import ast
     from rasterio.mask import mask
     from rasterio.features import geometry_mask
-except ImportError:
-   plugin_dir = os.path.dirname(__file__)
-   post_install_script = os.path.join(plugin_dir, 'post_install.py')
-   QgsMessageLog.logMessage("Installing requirements...", 'GEEST', level=Qgis.Info)
-   subprocess.check_call([sys.executable, post_install_script])
+except Exception:
+   QgsMessageLog.logMessage("Problem importing packages...", 'GEEST', level=Qgis.Info)
 
 # Prepare processing framework
 # sys.path.append(r'C:\Program Files\QGIS 3.32.0\apps\qgis\python\plugins') # Folder where Processing is located
