@@ -6148,24 +6148,39 @@ class GenderIndicatorTool:
         for i, spinner in enumerate(self.spinners):
             spinner.setRange(0, 100)
             spinner.setSingleStep(0.01)
-            spinner.valueChanged.connect(lambda value, i=i: self.calculate_PC_aggregate_weights(i))
+            spinner.valueChanged.connect(lambda value, i=i: self.on_spinner_value_changed(i))
 
         for field in self.fields:
-            field.textChanged.connect(self.update_spinner_state)
+            field.textChanged.connect(self.on_field_text_changed)
 
         # Call the function to set initial values
         self.calculate_PC_aggregate_weights(reset=True)
 
-    def create_value_changed_handler(self, index):
-        def handler(value):
-            self.calculate_PC_aggregate_weights(index=index)
-        return handler
+    def on_spinner_value_changed(self, index):
+        self.calculate_PC_aggregate_weights(index=index)
+
+    def on_field_text_changed(self):
+        self.update_spinner_state()
+        self.calculate_PC_aggregate_weights()
+
+    def update_spinner_state(self):
+        for spinner, field in zip(self.spinners, self.fields):
+            if not field.text():
+                spinner.blockSignals(True)
+                spinner.setValue(0)
+                spinner.setEnabled(False)
+                spinner.blockSignals(False)
+            else:
+                spinner.setEnabled(True)
 
     def calculate_PC_aggregate_weights(self, index=None, reset=False):
+        active_spinners = [s for s in self.spinners if s.isEnabled()]
+        num_active = len(active_spinners)
+
+        if num_active == 0:
+            return
+
         if reset:
-            # Evenly distribute the values among active spinners
-            active_spinners = [s for s, f in zip(self.spinners, self.fields) if f.text()]
-            num_active = len(active_spinners)
             if num_active > 0:
                 value = 100.0 / num_active
                 for spinner in active_spinners:
@@ -6173,35 +6188,24 @@ class GenderIndicatorTool:
                     spinner.setValue(value)
                     spinner.blockSignals(False)
         else:
-            total = sum(spinner.value() for spinner in self.spinners if spinner.isEnabled())
+            total = sum(spinner.value() for spinner in active_spinners)
             if total != 100.0 and index is not None:
-                # Find the next active spinner
-                num_spinners = len(self.spinners)
-                next_idx = (index + 1) % num_spinners
-                while not self.spinners[next_idx].isEnabled():
-                    next_idx = (next_idx + 1) % num_spinners
-                    if next_idx == index:
-                        break  # Avoid infinite loop if all spinners are disabled
+                remaining_spinners = [s for s in active_spinners if s != self.spinners[index]]
+                difference = 100.0 - total + self.spinners[index].value()
 
-                # Adjust the next active spinner
-                next_spinner = self.spinners[next_idx]
-                next_value = next_spinner.value() - (total - 100.0)
-                next_spinner.blockSignals(True)
-                next_spinner.setValue(max(0, next_value))
-                next_spinner.blockSignals(False)
+                if remaining_spinners:
+                    change_per_spinner = difference / len(remaining_spinners)
+                    for spinner in remaining_spinners:
+                        new_value = spinner.value() + change_per_spinner
+                        spinner.blockSignals(True)
+                        spinner.setValue(max(0, new_value))
+                        spinner.blockSignals(False)
 
-            # Ensure spinners are disabled if their associated field is empty
-            for spinner, field in zip(self.spinners, self.fields):
-                if not field.text():
-                    spinner.blockSignals(True)
-                    spinner.setValue(0)
-                    spinner.setEnabled(False)
-                    spinner.blockSignals(False)
-                else:
-                    spinner.setEnabled(True)
-
-    def update_spinner_state(self):
-        self.calculate_PC_aggregate_weights()
+        if num_active == 1:
+            active_spinners[0].blockSignals(True)
+            active_spinners[0].setValue(100)
+            active_spinners[0].setEnabled(False)
+            active_spinners[0].blockSignals(False)
 
     def reset_weights(self):
         self.calculate_PC_aggregate_weights(reset=True)
