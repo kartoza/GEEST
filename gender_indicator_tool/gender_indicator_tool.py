@@ -6154,7 +6154,7 @@ class GenderIndicatorTool:
         self.calculate_PC_aggregate_weights(reset=True)
 
     def on_spinner_value_changed(self, index):
-        self.calculate_PC_aggregate_weights(index=index)
+        self.update_spinner_values(index)
 
     def on_field_text_changed(self):
         self.update_spinner_enabled_state()
@@ -6183,17 +6183,23 @@ class GenderIndicatorTool:
                 spinner.blockSignals(True)
                 spinner.setValue(value)
                 spinner.blockSignals(False)
-        else:
-            total = sum(spinner.value() for spinner in active_spinners)
-            if total != 100.0:
-                difference = 100.0 - total
-                change_per_spinner = difference / (num_active - 1) if num_active > 1 else difference
-                for i, spinner in enumerate(active_spinners):
-                    if index is None or i != index:
-                        spinner.blockSignals(True)
-                        new_value = spinner.value() + change_per_spinner
-                        spinner.setValue(max(0, new_value))
-                        spinner.blockSignals(False)
+
+    def update_spinner_values(self, changed_index):
+        active_spinners = [sf['spinner'] for sf in self.spinner_fields if sf['spinner'].isEnabled()]
+        num_active = len(active_spinners)
+
+        if num_active <= 1:
+            return
+
+        total_value = 100.0
+        changed_spinner = self.spinner_fields[changed_index]['spinner']
+        remaining_value = total_value - changed_spinner.value()
+
+        for sf in self.spinner_fields:
+            if sf['index'] != changed_index and sf['spinner'].isEnabled():
+                sf['spinner'].blockSignals(True)
+                sf['spinner'].setValue(remaining_value / (num_active - 1))
+                sf['spinner'].blockSignals(False)
 
     def reset_weights(self):
         self.calculate_PC_aggregate_weights(reset=True)
