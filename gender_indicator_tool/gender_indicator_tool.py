@@ -6130,3 +6130,34 @@ class GenderIndicatorTool:
         self.dlg.ATAGG_status.repaint()
 
         os.chdir(workingDir)
+
+
+    def calculate_PC_aggregate_weights(self, reset=False):
+        if reset:
+            # Evenly distribute the values among active spinners
+            active_spinners = [s for s, f in zip(self.spinners, self.fields) if f.text()]
+            num_active = len(active_spinners)
+            if num_active > 0:
+                value = 100.0 / num_active
+                for spinner in active_spinners:
+                    spinner.blockSignals(True)
+                    spinner.setValue(value)
+                    spinner.blockSignals(False)
+
+        else:
+            total = sum(spinner.value() for spinner in self.spinners if spinner.isEnabled())
+            if total != 100.0:
+                sender = self.sender()
+                idx = self.spinners.index(sender)
+                # Adjust the next spinner or previous if the last one is changed
+                if idx < len(self.spinners) - 1:
+                    next_spinner = self.spinners[idx + 1]
+                    next_value = next_spinner.value() - (total - 100.0)
+                    next_spinner.blockSignals(True)
+                    next_spinner.setValue(max(0, next_value))
+                    next_spinner.blockSignals(False)
+                else:
+                    prev_spinner = self.spinners[idx - 1]
+                    prev_value = prev_spinner.value() - (total - 100.0)
+                    prev_spinner.blockSignals(True)
+                    prev_spinner.setValue
