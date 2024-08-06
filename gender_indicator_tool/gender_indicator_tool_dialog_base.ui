@@ -3049,7 +3049,7 @@ p, li { white-space: pre-wrap; }
             </widget>
            </item>
            <item row="1" column="3">
-            <widget class="QDoubleSpinBox" name="WLK_Aggregate_SB">
+            <widget class="QDoubleSpinBox" name="AT_Aggregate_SB">
              <property name="maximum">
               <double>100.000000000000000</double>
              </property>

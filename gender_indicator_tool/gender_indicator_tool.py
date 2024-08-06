@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import QFileDialog, QApplication, QComboBox
 from qgis.core import *
 from qgis.core import QgsVectorLayer, QgsProject, QgsCoordinateReferenceSystem, QgsCoordinateTransformContext, \
     QgsCoordinateTransform, QgsMessageLog, Qgis, QgsWkbTypes
-from PyQt5.QtCore import QVariant
+from PyQt5.QtCore import QVariant, QObject
 
 # package installs
 
@@ -384,6 +384,9 @@ class GenderIndicatorTool:
 
         ###### TAB 6.3 - Point Locations
         self.dlg.Buffer_Execute_PB.clicked.connect(self.Bufferinsights)
+
+        ###### ---> Weights auto-calc
+        self.initialize_aggregate_weights()
 
     def getFile(self, button_num):
         """
@@ -6133,28 +6136,32 @@ class GenderIndicatorTool:
 
     def initialize_aggregate_weights(self):
         self.spinners = [
-            self.AT_Aggregate_SB, self.SAF_Aggregate_SB, self.EDU_Aggregate_SB,
-            self.DIG_Aggregate_SB, self.ENV_Aggregate_SB, self.FCV_Aggregate_SB
+            self.dlg.AT_Aggregate_SB, self.dlg.SAF_Aggregate_SB, self.dlg.EDU_Aggregate_SB,
+            self.dlg.DIG_Aggregate_SB, self.dlg.ENV_Aggregate_SB, self.dlg.FCV_Aggregate_SB
         ]
 
         self.fields = [
-            self.AT_Aggregate_Field, self.SAF_Aggregate_Field, self.EDU_Aggregate_Field,
-            self.DIG_Aggregate_Field, self.ENV_Aggregate_Field, self.FCV_Aggregate_Field
+            self.dlg.AT_Aggregate_Field, self.dlg.SAF_Aggregate_Field, self.dlg.EDU_Aggregate_Field,
+            self.dlg.DIG_Aggregate_Field, self.dlg.ENV_Aggregate_Field, self.dlg.FCV_Aggregate_Field
         ]
 
-        for spinner in self.spinners:
+        for i, spinner in enumerate(self.spinners):
             spinner.setRange(0, 100)
             spinner.setSingleStep(0.01)
-            spinner.valueChanged.connect(self.calculate_PC_aggregate_weights)
+            spinner.valueChanged.connect(lambda value, i=i: self.calculate_PC_aggregate_weights(i))
 
         for field in self.fields:
-            field.textChanged.connect(self.calculate_PC_aggregate_weights)
+            field.textChanged.connect(self.update_spinner_state)
 
         # Call the function to set initial values
         self.calculate_PC_aggregate_weights(reset=True)
 
+    def create_value_changed_handler(self, index):
+        def handler(value):
+            self.calculate_PC_aggregate_weights(index=index)
+        return handler
 
-    def calculate_PC_aggregate_weights(self, reset=False):
+    def calculate_PC_aggregate_weights(self, index=None, reset=False):
         if reset:
             # Evenly distribute the values among active spinners
             active_spinners = [s for s, f in zip(self.spinners, self.fields) if f.text()]
@@ -6165,21 +6172,36 @@ class GenderIndicatorTool:
                     spinner.blockSignals(True)
                     spinner.setValue(value)
                     spinner.blockSignals(False)
-
         else:
             total = sum(spinner.value() for spinner in self.spinners if spinner.isEnabled())
-            if total != 100.0:
-                sender = self.sender()
-                idx = self.spinners.index(sender)
-                # Adjust the next spinner or previous if the last one is changed
-                if idx < len(self.spinners) - 1:
-                    next_spinner = self.spinners[idx + 1]
-                    next_value = next_spinner.value() - (total - 100.0)
-                    next_spinner.blockSignals(True)
-                    next_spinner.setValue(max(0, next_value))
-                    next_spinner.blockSignals(False)
+            if total != 100.0 and index is not None:
+                # Find the next active spinner
+                num_spinners = len(self.spinners)
+                next_idx = (index + 1) % num_spinners
+                while not self.spinners[next_idx].isEnabled():
+                    next_idx = (next_idx + 1) % num_spinners
+                    if next_idx == index:
+                        break  # Avoid infinite loop if all spinners are disabled
+
+                # Adjust the next active spinner
+                next_spinner = self.spinners[next_idx]
+                next_value = next_spinner.value() - (total - 100.0)
+                next_spinner.blockSignals(True)
+                next_spinner.setValue(max(0, next_value))
+                next_spinner.blockSignals(False)
+
+            # Ensure spinners are disabled if their associated field is empty
+            for spinner, field in zip(self.spinners, self.fields):
+                if not field.text():
+                    spinner.blockSignals(True)
+                    spinner.setValue(0)
+                    spinner.setEnabled(False)
+                    spinner.blockSignals(False)
                 else:
-                    prev_spinner = self.spinners[idx - 1]
-                    prev_value = prev_spinner.value() - (total - 100.0)
-                    prev_spinner.blockSignals(True)
-                    prev_spinner.setValue
+                    spinner.setEnabled(True)
+
+    def update_spinner_state(self):
+        self.calculate_PC_aggregate_weights()
+
+    def reset_weights(self):
+        self.calculate_PC_aggregate_weights(reset=True)
