@@ -6131,6 +6131,28 @@ class GenderIndicatorTool:
 
         os.chdir(workingDir)
 
+    def initialize_aggregate_weights(self):
+        self.spinners = [
+            self.AT_Aggregate_SB, self.SAF_Aggregate_SB, self.EDU_Aggregate_SB,
+            self.DIG_Aggregate_SB, self.ENV_Aggregate_SB, self.FCV_Aggregate_SB
+        ]
+
+        self.fields = [
+            self.AT_Aggregate_Field, self.SAF_Aggregate_Field, self.EDU_Aggregate_Field,
+            self.DIG_Aggregate_Field, self.ENV_Aggregate_Field, self.FCV_Aggregate_Field
+        ]
+
+        for spinner in self.spinners:
+            spinner.setRange(0, 100)
+            spinner.setSingleStep(0.01)
+            spinner.valueChanged.connect(self.calculate_PC_aggregate_weights)
+
+        for field in self.fields:
+            field.textChanged.connect(self.calculate_PC_aggregate_weights)
+
+        # Call the function to set initial values
+        self.calculate_PC_aggregate_weights(reset=True)
+
 
     def calculate_PC_aggregate_weights(self, reset=False):
         if reset:
