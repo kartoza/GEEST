@@ -6135,77 +6135,65 @@ class GenderIndicatorTool:
         os.chdir(workingDir)
 
     def initialize_aggregate_weights(self):
-        self.spinners = [
-            self.dlg.AT_Aggregate_SB, self.dlg.SAF_Aggregate_SB, self.dlg.EDU_Aggregate_SB,
-            self.dlg.DIG_Aggregate_SB, self.dlg.ENV_Aggregate_SB, self.dlg.FCV_Aggregate_SB
+        self.spinner_fields = [
+            {'index': 0, 'spinner': self.dlg.AT_Aggregate_SB, 'field': self.dlg.AT_Aggregate_Field},
+            {'index': 1, 'spinner': self.dlg.SAF_Aggregate_SB, 'field': self.dlg.SAF_Aggregate_Field},
+            {'index': 2, 'spinner': self.dlg.EDU_Aggregate_SB, 'field': self.dlg.EDU_Aggregate_Field},
+            {'index': 3, 'spinner': self.dlg.DIG_Aggregate_SB, 'field': self.dlg.DIG_Aggregate_Field},
+            {'index': 4, 'spinner': self.dlg.ENV_Aggregate_SB, 'field': self.dlg.ENV_Aggregate_Field},
+            {'index': 5, 'spinner': self.dlg.FCV_Aggregate_SB, 'field': self.dlg.FCV_Aggregate_Field},
         ]
 
-        self.fields = [
-            self.dlg.AT_Aggregate_Field, self.dlg.SAF_Aggregate_Field, self.dlg.EDU_Aggregate_Field,
-            self.dlg.DIG_Aggregate_Field, self.dlg.ENV_Aggregate_Field, self.dlg.FCV_Aggregate_Field
-        ]
+        for sf in self.spinner_fields:
+            sf['spinner'].setRange(0, 100)
+            sf['spinner'].setSingleStep(0.01)
+            sf['spinner'].valueChanged.connect(lambda value, i=sf['index']: self.on_spinner_value_changed(i))
+            sf['field'].textChanged.connect(self.on_field_text_changed)
 
-        for i, spinner in enumerate(self.spinners):
-            spinner.setRange(0, 100)
-            spinner.setSingleStep(0.01)
-            spinner.valueChanged.connect(lambda value, i=i: self.on_spinner_value_changed(i))
-
-        for field in self.fields:
-            field.textChanged.connect(self.on_field_text_changed)
-
-        # Call the function to set initial values
+        # Initialize spinner values
         self.calculate_PC_aggregate_weights(reset=True)
 
     def on_spinner_value_changed(self, index):
         self.calculate_PC_aggregate_weights(index=index)
 
     def on_field_text_changed(self):
-        self.update_spinner_state()
-        self.calculate_PC_aggregate_weights()
+        self.update_spinner_enabled_state()
+        self.calculate_PC_aggregate_weights(reset=True)
 
-    def update_spinner_state(self):
-        for spinner, field in zip(self.spinners, self.fields):
-            if not field.text():
-                spinner.blockSignals(True)
-                spinner.setValue(0)
-                spinner.setEnabled(False)
-                spinner.blockSignals(False)
+    def update_spinner_enabled_state(self):
+        for sf in self.spinner_fields:
+            sf['spinner'].blockSignals(True)
+            if not sf['field'].text():
+                sf['spinner'].setValue(0)
+                sf['spinner'].setEnabled(False)
             else:
-                spinner.setEnabled(True)
+                sf['spinner'].setEnabled(True)
+            sf['spinner'].blockSignals(False)
 
     def calculate_PC_aggregate_weights(self, index=None, reset=False):
-        active_spinners = [s for s in self.spinners if s.isEnabled()]
+        active_spinners = [sf['spinner'] for sf in self.spinner_fields if sf['spinner'].isEnabled()]
         num_active = len(active_spinners)
 
         if num_active == 0:
             return
 
         if reset:
-            if num_active > 0:
-                value = 100.0 / num_active
-                for spinner in active_spinners:
-                    spinner.blockSignals(True)
-                    spinner.setValue(value)
-                    spinner.blockSignals(False)
+            value = 100.0 / num_active
+            for spinner in active_spinners:
+                spinner.blockSignals(True)
+                spinner.setValue(value)
+                spinner.blockSignals(False)
         else:
             total = sum(spinner.value() for spinner in active_spinners)
-            if total != 100.0 and index is not None:
-                remaining_spinners = [s for s in active_spinners if s != self.spinners[index]]
-                difference = 100.0 - total + self.spinners[index].value()
-
-                if remaining_spinners:
-                    change_per_spinner = difference / len(remaining_spinners)
-                    for spinner in remaining_spinners:
-                        new_value = spinner.value() + change_per_spinner
+            if total != 100.0:
+                difference = 100.0 - total
+                change_per_spinner = difference / (num_active - 1) if num_active > 1 else difference
+                for i, spinner in enumerate(active_spinners):
+                    if index is None or i != index:
                         spinner.blockSignals(True)
+                        new_value = spinner.value() + change_per_spinner
                         spinner.setValue(max(0, new_value))
                         spinner.blockSignals(False)
-
-        if num_active == 1:
-            active_spinners[0].blockSignals(True)
-            active_spinners[0].setValue(100)
-            active_spinners[0].setEnabled(False)
-            active_spinners[0].blockSignals(False)
 
     def reset_weights(self):
         self.calculate_PC_aggregate_weights(reset=True)
